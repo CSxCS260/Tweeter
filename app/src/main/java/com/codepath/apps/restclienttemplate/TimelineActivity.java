@@ -1,6 +1,7 @@
 package com.codepath.apps.restclienttemplate;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.FragmentManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
@@ -10,9 +11,11 @@ import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.View;
 
 import com.codepath.apps.restclienttemplate.models.Tweet;
 import com.codepath.asynchttpclient.callback.JsonHttpResponseHandler;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -22,7 +25,7 @@ import java.util.List;
 
 import okhttp3.Headers;
 
-public class TimelineActivity extends AppCompatActivity {
+public class TimelineActivity extends AppCompatActivity implements ComposeTweetDialogFragment.OnCompleteListener{
 
     public static final String TAG = "TimelineActivity";
 
@@ -32,6 +35,7 @@ public class TimelineActivity extends AppCompatActivity {
     TweetsAdapter adapter;
     SwipeRefreshLayout swipeRefreshLayout;
     EndlessRecyclerViewScrollListener scrollListener;
+    FloatingActionButton fab;
 
 
     @Override
@@ -53,6 +57,13 @@ public class TimelineActivity extends AppCompatActivity {
             }
         });
 
+        fab = findViewById(R.id.fab);
+        fab.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showComposeDialog();
+            }
+        });
 
         client = TwitterApp.getRestClient(this);
 
@@ -75,7 +86,11 @@ public class TimelineActivity extends AppCompatActivity {
         rvTweets.addOnScrollListener(scrollListener);
         populateHomeTimeline();
     }
-
+    private void showComposeDialog() {
+        FragmentManager fm = getSupportFragmentManager();
+        ComposeTweetDialogFragment composeTweetDialogFragment = ComposeTweetDialogFragment.newInstance("Some Title");
+        composeTweetDialogFragment.show(fm, "fragment_compose_tweet");
+    }
     private void loadMoreData(){
         client.getNextPage(new JsonHttpResponseHandler() {
             @Override
@@ -98,6 +113,7 @@ public class TimelineActivity extends AppCompatActivity {
         }, tweets.get(tweets.size()-1).id);
     }
 
+
     private void populateHomeTimeline() {
         client.getHomeTimeline(new JsonHttpResponseHandler() {
             @Override
@@ -118,5 +134,13 @@ public class TimelineActivity extends AppCompatActivity {
                 Log.e(TAG, "onFailure", throwable);
             }
         });
+    }
+
+
+    @Override
+    public void onComplete(Tweet tweet) {
+        tweets.add(0,tweet);
+        adapter.notifyItemInserted(0);
+        rvTweets.smoothScrollToPosition(0);
     }
 }
